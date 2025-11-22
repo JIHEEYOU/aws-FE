@@ -1,6 +1,6 @@
 import { X, Upload, FileText } from 'lucide-react';
-import { useEffect, useState } from 'react';
-import { getResume, uploadResume, type ResumeResponse } from '../api/resume';
+import { useState, useEffect } from 'react';
+import { uploadResume, type UploadPdfResponse } from '../api/resume';
 
 interface ResumeUploadModalProps {
   isOpen: boolean;
@@ -15,26 +15,17 @@ export default function ResumeUploadModal({
 }: ResumeUploadModalProps) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isDragging, setIsDragging] = useState(false);
-  const [existingResume, setExistingResume] = useState<ResumeResponse | null>(null);
+  const [uploadResult, setUploadResult] = useState<UploadPdfResponse | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchResume = async () => {
-      try {
-        const resume = await getResume(studentId);
-        setExistingResume(resume);
-      } catch {
-        setExistingResume(null);
-      }
-    };
-
     if (isOpen) {
       setSelectedFile(null);
       setErrorMessage(null);
-      fetchResume();
+      setUploadResult(null);
     }
-  }, [isOpen, studentId]);
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -71,12 +62,15 @@ export default function ResumeUploadModal({
     setErrorMessage(null);
 
     try {
-      const uploaded = await uploadResume(studentId, selectedFile, {
+      const result = await uploadResume(studentId, selectedFile, {
         method: 'upload',
         version: 'v1',
       });
-      setExistingResume(uploaded);
-      onClose();
+      setUploadResult(result);
+      // 성공 메시지 표시 후 잠시 후 닫기
+      setTimeout(() => {
+        onClose();
+      }, 2000);
     } catch (error) {
       const message =
         error instanceof Error ? error.message : '업로드에 실패했습니다. 다시 시도해 주세요.';
@@ -113,18 +107,24 @@ export default function ResumeUploadModal({
 
         <div className="p-6">
           <div className="mb-6 space-y-3">
-            <h3 className="text-gray-900 font-semibold mb-3">모델 파일 (.PDF)</h3>
-            {existingResume && (
-              <div className="p-3 bg-blue-50 border border-blue-100 rounded-xl text-sm text-blue-900">
-                <p className="font-semibold">이전에 업로드한 파일</p>
-                <a
-                  href={existingResume.url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="underline text-blue-600 text-sm"
-                >
-                  {existingResume.fileName}
-                </a>
+            <h3 className="text-gray-900 font-semibold mb-3">이력서 파일 (.PDF)</h3>
+            {uploadResult && (
+              <div className="p-4 bg-green-50 border border-green-200 rounded-xl">
+                <p className="font-semibold text-green-900 mb-2">✅ 업로드 성공!</p>
+                <div className="text-sm text-green-800 space-y-1">
+                  {uploadResult.resume_data.major && (
+                    <p>전공: {uploadResult.resume_data.major}</p>
+                  )}
+                  {uploadResult.resume_data.grade && (
+                    <p>학년: {uploadResult.resume_data.grade}</p>
+                  )}
+                  {uploadResult.resume_data.certificates && (
+                    <p>자격증: {uploadResult.resume_data.certificates}</p>
+                  )}
+                  <p className="mt-2 font-semibold">
+                    추천 장학금: {uploadResult.recommended.length}건
+                  </p>
+                </div>
               </div>
             )}
             {errorMessage && (

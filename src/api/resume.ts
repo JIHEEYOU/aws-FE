@@ -12,16 +12,31 @@ export interface ResumeResponse {
   url: string;
 }
 
+// 백엔드 /upload-pdf 응답 타입
+export interface UploadPdfResponse {
+  resume_data: {
+    major?: string;
+    grade?: string;
+    certificates?: string;
+    [key: string]: unknown;
+  };
+  recommended: Array<{
+    id: number;
+    title: string;
+    [key: string]: unknown;
+  }>;
+}
+
 export async function uploadResume(
-  studentId: string,
+  _studentId: string,
   file: File,
-  meta: ResumeMeta,
-): Promise<ResumeResponse> {
+  _meta: ResumeMeta,
+): Promise<UploadPdfResponse> {
   const formData = new FormData();
   formData.append('file', file);
-  formData.append('meta', JSON.stringify(meta));
 
-  return apiRequest<ResumeResponse>(`/api/students/${studentId}/resume`, {
+  // 백엔드 /upload-pdf 엔드포인트 사용 (http://18.188.164.109:8000/upload-pdf)
+  return apiRequest<UploadPdfResponse>('/upload-pdf', {
     method: 'POST',
     body: formData,
   });
